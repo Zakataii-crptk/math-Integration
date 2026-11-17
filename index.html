@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>อินทิกรัลจำกัดเขตและพื้นที่ ม.6</title>
+
+<script>
+window.MathJax = {
+    tex: {
+        inlineMath: [["\\(", "\\)"]]
+    },
+    svg: {
+        fontCache: "global"
+    }
+};
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, Tahoma, sans-serif;
+    background: #eef3fa;
+    color: #222;
+}
+
+.container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 30px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+h1, h2, h3 {
+    text-align: center;
+}
+
+h1 {
+    margin-bottom: 8px;
+    color: #2457a6;
+}
+
+h3 {
+    margin-top: 0;
+    color: #555;
+}
+
+input {
+    width: 100%;
+    margin: 10px 0;
+    padding: 14px;
+    font-size: 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+}
+
+input:focus {
+    outline: none;
+    border-color: #2d6cdf;
+    box-shadow: 0 0 0 3px rgba(45, 108, 223, 0.15);
+}
+
+button {
+    padding: 14px 24px;
+    font-size: 16px;
+    color: #ffffff;
+    cursor: pointer;
+    background: #2d6cdf;
+    border: none;
+    border-radius: 10px;
+    transition: 0.2s;
+}
+
+button:hover {
+    background: #1f56bd;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    background: #8a8a8a;
+}
+
+#examPage {
+    display: none;
+}
+
+.question-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    margin-top: 25px;
+    padding: 35px 25px;
+    overflow-x: auto;
+    font-size: 22px;
+    line-height: 1.9;
+    text-align: center;
+    background: #fafcff;
+    border: 2px solid #d7e1f1;
+    border-radius: 12px;
+}
+
+.instruction-box {
+    width: 100%;
+    max-width: 650px;
+    font-size: 17px;
+    line-height: 1.8;
+    text-align: left;
+}
+
+.instruction-box h3 {
+    margin: 0 0 10px;
+    color: #2457a6;
+    text-align: center;
+}
+
+.instruction-box ul {
+    margin: 0;
+    padding-left: 25px;
+}
+
+.center {
+    margin-top: 22px;
+    text-align: center;
+}
+
+.terminated {
+    max-width: 700px;
+    margin: 100px auto;
+    padding: 30px;
+    text-align: center;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+@media (max-width: 600px) {
+    .container {
+        margin: 15px;
+        padding: 20px;
+    }
+
+    .question-box {
+        padding: 25px 15px;
+        font-size: 18px;
+    }
+
+    .instruction-box {
+        font-size: 16px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div id="loginPage">
+        <h1>อินทิกรัลจำกัดเขตและพื้นที่</h1>
+        <h3>แคลคูลัสเบื้องต้น ม.6</h3>
+
+        <input id="name" type="text" placeholder="ชื่อ - นามสกุล">
+        <input id="number" type="text" placeholder="เลขที่ / รหัสนักเรียน">
+
+        <div class="center">
+            <button onclick="startExam()">เริ่มทำแบบฝึกหัด</button>
+        </div>
+    </div>
+
+    <div id="examPage">
+        <h2>อินทิกรัลจำกัดเขตและพื้นที่</h2>
+
+        <p><b>ชื่อ:</b> <span id="studentName"></span></p>
+        <p><b>เลขที่:</b> <span id="studentNumber"></span></p>
+        <p><b>ข้อที่:</b> <span id="count">0</span> / 5</p>
+
+        <div id="questionBox" class="question-box"></div>
+
+        <div class="center">
+            <button id="nextButton" onclick="generateQuestion()">
+                เริ่มแสดงโจทย์ข้อที่ 1
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+let count = 0;
+let examStarted = false;
+let questionSet = [];
+
+/* สุ่มตำแหน่งข้อมูล */
+function randomIndex(max) {
+    const values = new Uint32Array(1);
+
+    if (window.crypto && window.crypto.getRandomValues) {
+        window.crypto.getRandomValues(values);
+        return values[0] % max;
+    }
+
+    return Math.floor(Math.random() * max);
+}
+
+/* สลับลำดับข้อมูล */
+function shuffle(items) {
+    const result = [...items];
+
+    for (let i = result.length - 1; i > 0; i--) {
+        const j = randomIndex(i + 1);
+        [result[i], result[j]] = [result[j], result[i]];
+    }
+
+    return result;
+}
+
+/*
+    แปลงพหุนามเป็น LaTeX
+    รูปแบบสัมประสิทธิ์:
+    [ค่าคงที่, x, x², x³, ...]
+*/
+function polynomialToLatex(coefficients) {
+    const terms = [];
+
+    for (let power = coefficients.length - 1; power >= 0; power--) {
+        const coefficient = coefficients[power];
+
+        if (coefficient === 0) {
+            continue;
+        }
+
+        const isNegative = coefficient < 0;
+        const absoluteValue = Math.abs(coefficient);
+
+        let term = "";
+
+        if (power === 0) {
+            term = `${absoluteValue}`;
+        } else if (power === 1) {
+            term = absoluteValue === 1 ? "x" : `${absoluteValue}x`;
+        } else {
+            term = absoluteValue === 1
+                ? `x^{${power}}`
+                : `${absoluteValue}x^{${power}}`;
+        }
+
+        if (terms.length === 0) {
+            terms.push(isNegative ? `-${term}` : term);
+        } else {
+            terms.push(isNegative ? `- ${term}` : `+ ${term}`);
+        }
+    }
+
+    return terms.length > 0 ? terms.join(" ") : "0";
+}
+
+/* คูณพหุนาม */
+function multiplyPolynomials(polyA, polyB) {
+    const result = new Array(polyA.length + polyB.length - 1).fill(0);
+
+    for (let i = 0; i < polyA.length; i++) {
+        for (let j = 0; j < polyB.length; j++) {
+            result[i + j] += polyA[i] * polyB[j];
+        }
+    }
+
+    return result;
+}
+
+/* สร้างพหุนามจากราก เช่น (x-a)(x-b) */
+function polynomialFromRoots(roots, multiplier = 1) {
+    let polynomial = [multiplier];
+
+    for (const root of roots) {
+        polynomial = multiplyPolynomials(polynomial, [-root, 1]);
+    }
+
+    return polynomial;
+}
+
+/* สุ่มเลือกโจทย์ 1 ข้อ */
+function pickRandomQuestion(questionGroup) {
+    return questionGroup[randomIndex(questionGroup.length)];
+}
+
+/*
+    ข้อ 1: อินทิกรัลจำกัดเขตของฟังก์ชันแบ่งเป็นช่วง
+    จำนวน 100 ข้อ
+*/
+function createPiecewiseIntegralBank() {
+    const bank = [];
+
+    const splitPoints = [-2, -1, 0, 1, 2];
+    const quadraticCoefficients = [-2, -1, 1, 2];
+    const quadraticConstants = [-2, 0, 2];
+    const linearCoefficients = [-2, -1, 1, 2];
+    const linearConstants = [-2, 1];
+
+    for (const splitPoint of splitPoints) {
+        for (const quadraticCoefficient of quadraticCoefficients) {
+            for (const quadraticConstant of quadraticConstants) {
+                for (const linearCoefficient of linearCoefficients) {
+                    for (const linearConstant of linearConstants) {
+                        const upperFunction = polynomialToLatex([
+                            quadraticConstant,
+                            0,
+                            quadraticCoefficient
+                        ]);
+
+                        const lowerFunction = polynomialToLatex([
+                            linearConstant,
+                            linearCoefficient
+                        ]);
+
+                        const lowerBound = splitPoint - 2;
+                        const upperBound = splitPoint + 2;
+
+                        bank.push(
+                            `กำหนดให้ ` +
+                            `\\(f(x)=\\begin{cases}` +
+                            `${upperFunction}, & x \\geq ${splitPoint} \\\\ ` +
+                            `${lowerFunction}, & x < ${splitPoint}` +
+                            `\\end{cases}\\) ` +
+                            `จงหาค่าของ ` +
+                            `\\(\\displaystyle \\int_{${lowerBound}}^{${upperBound}} f(x)\\,dx\\)`
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    return shuffle(bank).slice(0, 100);
+}
+
+/*
+    ข้อ 2: พื้นที่ระหว่างเส้นโค้งกับแกน x
+    กำหนดช่วงมาให้
+
+    ใช้ฟังก์ชันกำลังสอง:
+    y = a(x-r)(x-s)
+
+    มีรากจำนวนเต็ม จึงหาจุดตัดแกน x ได้ง่าย
+    และช่วงที่กำหนดครอบคลุมทั้งบริเวณเหนือและใต้แกน x
+*/
+function createAreaWithIntervalBank() {
+    const bank = [];
+
+    const roots = [-4, -3, -2, -1, 0, 1, 2, 3, 4];
+    const multipliers = [-2, -1, 1, 2];
+    const leftPads = [1, 2];
+    const rightPads = [1, 2];
+
+    for (let i = 0; i < roots.length; i++) {
+        for (let j = i + 1; j < roots.length; j++) {
+            for (const multiplier of multipliers) {
+                for (const leftPad of leftPads) {
+                    for (const rightPad of rightPads) {
+                        const coefficients = polynomialFromRoots(
+                            [roots[i], roots[j]],
+                            multiplier
+                        );
+
+                        const functionLatex = polynomialToLatex(coefficients);
+
+                        const left = roots[i] - leftPad;
+                        const right = roots[j] + rightPad;
+
+                        bank.push(
+                            `กำหนดเส้นโค้ง \\(y=${functionLatex}\\) ` +
+                            `จงหาพื้นที่ระหว่างเส้นโค้งกับแกน \\(x\\) ` +
+                            `เมื่อ \\(${left} \\leq x \\leq ${right}\\)`
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    return shuffle(bank).slice(0, 100);
+}
+
+/*
+    ข้อ 3: พื้นที่ระหว่างเส้นโค้งกับแกน x
+    ไม่กำหนดช่วง
+
+    ใช้ฟังก์ชันกำลังสอง:
+    y = a(x-r)(x-s)
+
+    จุดตัดแกน x เป็นจำนวนเต็ม
+*/
+function createAreaWithoutIntervalBank() {
+    const bank = [];
+
+    const roots = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
+    const multipliers = [-2, -1, 1, 2];
+
+    for (let i = 0; i < roots.length; i++) {
+        for (let j = i + 1; j < roots.length; j++) {
+            for (const multiplier of multipliers) {
+                const coefficients = polynomialFromRoots(
+                    [roots[i], roots[j]],
+                    multiplier
+                );
+
+                const functionLatex = polynomialToLatex(coefficients);
+
+                bank.push(
+                    `กำหนดเส้นโค้ง \\(y=${functionLatex}\\) ` +
+                    `จงหาพื้นที่ทั้งหมดที่ปิดล้อมด้วยเส้นโค้ง ` +
+                    `และแกน \\(x\\)`
+                );
+            }
+        }
+    }
+
+    return shuffle(bank).slice(0, 100);
+}
+
+/*
+    ข้อ 4: พื้นที่ระหว่างเส้นโค้งกำลังสองสองเส้น
+    กำหนดช่วงมาให้
+
+    y₁ = ax² + d
+    y₂ = -ax² + 2a(r+s)x + d - 2ars
+
+    เส้นโค้งตัดกันที่ x=r และ x=s
+    โดยกำหนดช่วง [r,s] มาให้
+*/
+function createAreaBetweenCurvesWithIntervalBank() {
+    const bank = [];
+
+    const roots = [-4, -3, -2, -1, 0, 1, 2, 3, 4];
+    const constants = [-4, -3, -2, -1, 0, 1, 2, 3, 4];
+
+    for (let i = 0; i < roots.length; i++) {
+        for (let j = i + 1; j < roots.length; j++) {
+            const root1 = roots[i];
+            const root2 = roots[j];
+
+            for (let a = 1; a <= 3; a++) {
+                for (const constant of constants) {
+                    /*
+                        y₁ = ax² + d
+                    */
+                    const firstCurve = [
+                        constant,
+                        0,
+                        a
+                    ];
+
+                    /*
+                        y₂ = -ax² + 2a(r+s)x + d - 2ars
+                    */
+                    const secondCurve = [
+                        constant - 2 * a * root1 * root2,
+                        2 * a * (root1 + root2),
+                        -a
+                    ];
+
+                    const firstCurveLatex =
+                        polynomialToLatex(firstCurve);
+
+                    const secondCurveLatex =
+                        polynomialToLatex(secondCurve);
+
+                    bank.push(
+                        `กำหนดเส้นโค้ง \\(y=${firstCurveLatex}\\) ` +
+                        `และเส้นโค้ง \\(y=${secondCurveLatex}\\) ` +
+                        `จงหาพื้นที่ระหว่างเส้นโค้งทั้งสอง ` +
+                        `เมื่อ \\(${root1} \\leq x \\leq ${root2}\\)`
+                    );
+                }
+            }
+        }
+    }
+
+    return shuffle(bank).slice(0, 100);
+}
+
+/*
+    ข้อ 5: พื้นที่ระหว่างเส้นโค้งกำลังสองสองเส้น
+    ไม่กำหนดช่วง
+
+    y₁ = ax² + d
+    y₂ = -ax² + 2a(r+s)x + d - 2ars
+
+    จุดตัดเป็น x=r และ x=s ซึ่งเป็นจำนวนเต็ม
+*/
+function createAreaBetweenCurvesWithoutIntervalBank() {
+    const bank = [];
+
+    const roots = [-3, -2, -1, 0, 1, 2, 3];
+    const constants = [-4, -3, -2, -1, 0, 1, 2, 3, 4];
+
+    for (let i = 0; i < roots.length; i++) {
+        for (let j = i + 1; j < roots.length; j++) {
+            const root1 = roots[i];
+            const root2 = roots[j];
+
+            for (let a = 1; a <= 3; a++) {
+                for (const constant of constants) {
+                    /*
+                        เส้นโค้งเส้นที่ 1:
+                        y = ax² + d
+                    */
+                    const firstCurve = [
+                        constant,
+                        0,
+                        a
+                    ];
+
+                    /*
+                        เส้นโค้งเส้นที่ 2:
+                        y = -ax² + 2a(r+s)x + d - 2ars
+                    */
+                    const secondCurve = [
+                        constant - 2 * a * root1 * root2,
+                        2 * a * (root1 + root2),
+                        -a
+                    ];
+
+                    const firstCurveLatex =
+                        polynomialToLatex(firstCurve);
+
+                    const secondCurveLatex =
+                        polynomialToLatex(secondCurve);
+
+                    bank.push(
+                        `กำหนดเส้นโค้ง \\(y=${firstCurveLatex}\\) ` +
+                        `และเส้นโค้ง \\(y=${secondCurveLatex}\\) ` +
+                        `จงหาพื้นที่ที่ปิดล้อมด้วยเส้นโค้งทั้งสอง`
+                    );
+                }
+            }
+        }
+    }
+
+    return shuffle(bank).slice(0, 100);
+}
+
+/*
+    คลังโจทย์รวม 500 ข้อ
+    - ข้อ 1 จำนวน 100 ข้อ
+    - ข้อ 2 จำนวน 100 ข้อ
+    - ข้อ 3 จำนวน 100 ข้อ
+    - ข้อ 4 จำนวน 100 ข้อ
+    - ข้อ 5 จำนวน 100 ข้อ
+*/
+const questionBank = {
+    piecewiseIntegral: createPiecewiseIntegralBank(),
+    areaWithInterval: createAreaWithIntervalBank(),
+    areaWithoutInterval: createAreaWithoutIntervalBank(),
+    areaBetweenCurvesWithInterval:
+        createAreaBetweenCurvesWithIntervalBank(),
+    areaBetweenCurvesWithoutInterval:
+        createAreaBetweenCurvesWithoutIntervalBank()
+};
+
+/* สร้างชุดโจทย์ 5 ข้อ */
+function createRandomQuestionSet() {
+    return [
+        pickRandomQuestion(questionBank.piecewiseIntegral),
+        pickRandomQuestion(questionBank.areaWithInterval),
+        pickRandomQuestion(questionBank.areaWithoutInterval),
+        pickRandomQuestion(
+            questionBank.areaBetweenCurvesWithInterval
+        ),
+        pickRandomQuestion(
+            questionBank.areaBetweenCurvesWithoutInterval
+        )
+    ];
+}
+
+/* แสดงคำชี้แจง */
+function showInstructions() {
+    const questionBox = document.getElementById("questionBox");
+
+    questionBox.innerHTML = `
+        <div class="instruction-box">
+            <h3>คำชี้แจง</h3>
+            <ul>
+                <li>แบบฝึกหัดมีทั้งหมด 5 ข้อ</li>
+                <li>ระบบจะแสดงโจทย์ครั้งละ 1 ข้อ</li>
+                <li>เขียนวิธีทำและคำตอบลงในสมุดหรือกระดาษคำตอบ</li>
+                <li>เมื่อพร้อมแล้ว ให้กดปุ่ม “เริ่มแสดงโจทย์ข้อที่ 1”</li>
+            </ul>
+        </div>
+    `;
+
+    if (window.MathJax && typeof MathJax.typesetPromise === "function") {
+        MathJax.typesetClear([questionBox]);
+        MathJax.typesetPromise([questionBox]).catch(function() {});
+    }
+}
+
+/* เริ่มทำแบบฝึกหัด */
+function startExam() {
+    const name = document.getElementById("name").value.trim();
+    const number = document.getElementById("number").value.trim();
+
+    if (!name || !number) {
+        alert("กรุณากรอกชื่อและเลขที่ / รหัสนักเรียนให้ครบถ้วน");
+        return;
+    }
+
+    count = 0;
+    examStarted = true;
+    questionSet = createRandomQuestionSet();
+
+    document.getElementById("studentName").textContent = name;
+    document.getElementById("studentNumber").textContent = number;
+    document.getElementById("count").textContent = "0";
+
+    document.getElementById("nextButton").disabled = false;
+    document.getElementById("nextButton").textContent =
+        "เริ่มแสดงโจทย์ข้อที่ 1";
+
+    document.getElementById("loginPage").style.display = "none";
+    document.getElementById("examPage").style.display = "block";
+
+    showInstructions();
+    history.pushState(null, "", location.href);
+}
+
+/* จัดรูปสมการด้วย MathJax */
+function typesetQuestion() {
+    const questionBox = document.getElementById("questionBox");
+
+    if (window.MathJax && typeof MathJax.typesetPromise === "function") {
+        MathJax.typesetClear([questionBox]);
+        MathJax.typesetPromise([questionBox]).catch(function() {});
+    }
+}
+
+/* แสดงโจทย์ข้อถัดไป */
+function generateQuestion() {
+    if (count >= 5) {
+        return;
+    }
+
+    const question = questionSet[count];
+    count++;
+
+    document.getElementById("count").textContent = count;
+    document.getElementById("questionBox").innerHTML =
+        `<div>${question}</div>`;
+
+    typesetQuestion();
+
+    const nextButton = document.getElementById("nextButton");
+
+    if (count < 5) {
+        nextButton.textContent = "แสดงโจทย์ข้อถัดไป";
+    } else {
+        nextButton.disabled = true;
+        nextButton.textContent = "ครบ 5 ข้อแล้ว";
+    }
+}
+
+/* สิ้นสุดแบบฝึกหัด */
+function terminateExam(message) {
+    examStarted = false;
+
+    document.body.innerHTML = `
+        <div class="terminated">
+            <h1 style="color:#c62828;">สิ้นสุดการทำแบบฝึกหัด</h1>
+            <p>${message}</p>
+        </div>
+    `;
+}
+
+/* ตรวจจับการเปลี่ยนแท็บ */
+document.addEventListener("visibilitychange", function() {
+    if (examStarted && document.hidden) {
+        terminateExam("ตรวจพบการเปลี่ยนแท็บหรือออกจากหน้าต่างแบบฝึกหัด");
+    }
+});
+
+/* ตรวจจับการเปลี่ยนหน้าต่าง */
+window.addEventListener("blur", function() {
+    if (examStarted) {
+        terminateExam("ตรวจพบการเปลี่ยนหน้าต่าง");
+    }
+});
+
+/* ป้องกันการรีเฟรชหน้าเว็บ */
+document.addEventListener("keydown", function(event) {
+    if (!examStarted) {
+        return;
+    }
+
+    const isRefresh =
+        event.key === "F5" ||
+        ((event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "r");
+
+    if (isRefresh) {
+        event.preventDefault();
+        terminateExam("ตรวจพบการรีเฟรชหน้าเว็บ");
+    }
+});
+
+/* แจ้งเตือนก่อนออกจากหน้า */
+window.addEventListener("beforeunload", function(event) {
+    if (examStarted) {
+        event.preventDefault();
+        event.returnValue = "";
+    }
+});
+
+/* ตรวจจับการกดย้อนกลับ */
+window.addEventListener("popstate", function() {
+    if (examStarted) {
+        terminateExam("ตรวจพบการกดย้อนกลับ");
+    }
+});
+</script>
+
+</body>
+</html>
